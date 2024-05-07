@@ -1,10 +1,10 @@
-import express from 'express';
-import { fileURLToPath } from 'url';
-import path from 'path';
-import cors from 'cors';
-//import passport from 'passport';
-import apiRoutes from './src/routes/api.js';
-import bodyParser from 'body-parser';
+const express = require('express');
+const { fileURLToPath } = require('url');
+const path = require('path');
+const cors = require('cors');
+//const passport = require('passport');
+const apiRoutes = require('./src/routes/api.js');
+const bodyParser = require('body-parser');
 
 const server = express();
 
@@ -17,8 +17,8 @@ const corsOptions = {
 
 server.use(cors(corsOptions));
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+//const __filename = fileURLToPath(import.meta.url);
+//const __dirname = path.dirname(__filename);
 
 server.use(express.static(path.join(__dirname, '/public')));
 server.use(bodyParser.json())
@@ -26,7 +26,7 @@ server.use(express.urlencoded({ extended: true }));
 
 //server.use(passport.initialize());
 
-server.use('/api', apiRoutes);
+server.use('', apiRoutes);
 
 server.use((req, res) => {
     res.status(404);

@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
-  "type": "module",
   "scripts": {
     "start": "node --env-file=.env app.js",
     "startdev": "nodemon --env-file=.env app.js",
@@ -12,9 +11,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@tensorflow/tfjs-core": "^4.19.0",
+    "@tensorflow/tfjs-node": "^4.19.0",
+    "@tensorflow/tfjs-node-gpu": "^4.19.0",
+    "@vladmandic/face-api": "^1.7.13",
     "body-parser": "^1.20.2",
+    "canvas": "^2.11.2",
     "cors": "^2.8.5",
     "express": "^4.19.2",
+    "fs": "^0.0.1-security",
     "nodemon": "^3.1.0",
     "path": "^0.12.7",
     "url": "^0.11.3"
