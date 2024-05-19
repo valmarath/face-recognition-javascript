@@ -1,86 +1,70 @@
+'use client'
+import { useState, useEffect } from 'react';
+
 import Image from "next/image";
+import { useRouter } from 'next/navigation';
+
+import { useSettings } from '../config/hooks/useSettings'
+
 import styles from "../page.module.css";
 
-export default function Home() {
+export default function signin() {
+
+  const router = useRouter();
+  const { settings, saveSettings } = useSettings();
+  const [isLoading, setIsLoading] = useState(false);
+  const [loginType, setLoginType] = useState('');
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    if(loginType == 'face') {
+      console.log('face')
+    } else if (loginType === 'password') {
+      if(!e.target.elements.password.value) {
+        console.log('sem senha')
+      }
+    }
+
+    if(true) {
+      const newSettings = {authorizedUser: true}
+      saveSettings(newSettings)
+    }
+
+    setIsLoading(false);
+
+    router.push('/dashboard');
+  }
+
   return (
     <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.js</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By Gabriel Melo Valmarath
-          </a>
+{/* <Image
+            className={styles.logo}
+            src="./face.svg"
+            alt="Next.js Logo"
+            width={100}
+            height={100}
+            priority
+          /> */}
+      {isLoading &&
+        <div className={styles["loader-container"]}>
+          <div className={styles.loader}></div>
         </div>
-      </div>
-
+      }
       <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
+        {!isLoading &&
+          <form onSubmit={handleLogin}>
+            <span>Sign In</span>
+            <label htmlFor="fusername">Username</label>
+            <input type="text" id="fusername" name="username" required />
+            <label htmlFor="fpassword">Password</label>
+            <input type="password" id="fpassword" name="password" />
+            <div>
+              <button type="submit" onClick={() => setLoginType('password')}>Password Sign In</button>
+              <button type="submit" onClick={() => setLoginType('face')}>Face Sign In</button>
+            </div>
+          </form>
+        }
       </div>
     </main>
   );
