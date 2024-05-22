@@ -6,7 +6,6 @@ const { generateToken } = require('../config/passport');
 const { hashPassword } = require('../utils');
 const bcrypt = require('bcrypt');
 
-
 const myConfig = {
     face: {
     enabled: true,
@@ -33,7 +32,7 @@ const login = async (req, res) => {
     try {
         const user = await pool.query('SELECT * FROM "USERS" WHERE username = $1', [req.body.username]);
 
-        if(!user) {
+        if(user.rowCount == 0) {
             res.status(401);
             res.json({ error: 'Incorrect e-mail or password!' });
             return;
@@ -53,26 +52,28 @@ const login = async (req, res) => {
     
         return res.status(200).json({ token: token});
     } catch (err) {
-        return res.status(500).json({ Error: err });
+        return res.status(500).json({ error: err });
     }
 
     
 }
 
 const faceLogin = async (req, res) => {
-    const user = await pool.query('SELECT * FROM "USERS" WHERE username = $1', [req.body.username]);
 
-    if(!user) {
-        res.status(401).json({ error: 'Incorrect e-mail or password!' });
-        return;
-    }
-
-    if(!passwordMatch) {
-        res.status(401).json({ error: 'Incorrect e-mail or password!' });
-        return;
-    }
-        
     try {
+
+        const user = await pool.query('SELECT * FROM "USERS" WHERE username = $1', [req.body.username]);
+
+        if(!user) {
+            res.status(401).json({ error: 'Incorrect e-mail or password!' });
+            return;
+        }
+
+        if(!passwordMatch) {
+            res.status(401).json({ error: 'Incorrect e-mail or password!' });
+            return;
+        }
+        
         const detectQuery1 = human.detect(readImage(QUERY_IMAGE));
         const detectQuery2 = human.detect(readImage(QUERY_IMAGE2));
     
@@ -117,7 +118,6 @@ const faceLogin = async (req, res) => {
                 }
             })
             .catch(err => {
-                // Handle errors
             return res.status(500).json({ Error: err });
         });
     
