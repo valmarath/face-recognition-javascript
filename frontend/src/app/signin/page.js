@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
@@ -8,12 +8,66 @@ import { useSettings } from '../config/hooks/useSettings'
 
 import styles from "../page.module.css";
 
+import Webcam from "react-webcam";
+
+
 export default function signin() {
+
+  const webcamRef = useRef(null);
+  const canvasRef = useRef(null);
 
   const router = useRouter();
   const { settings, saveSettings } = useSettings();
   const [isLoading, setIsLoading] = useState(false);
   const [loginType, setLoginType] = useState('');
+
+  const runFaceMesh = async () => {
+    setInterval(() => {
+      detect();
+    }, 10000);
+  };
+
+  const detect = async () => {
+    if (
+      typeof webcamRef.current !== "undefined" &&
+      webcamRef.current !== null &&
+      webcamRef.current.video.readyState === 4
+    ) {
+      const video = webcamRef.current.video;
+      const videoWidth = webcamRef.current.video.videoWidth;
+      const videoHeight = webcamRef.current.video.videoHeight;
+
+      webcamRef.current.video.width = videoWidth;
+      webcamRef.current.video.height = videoHeight;
+
+      canvasRef.current.width = videoWidth;
+      canvasRef.current.height = videoHeight;
+      
+      const ctx = canvasRef.current.getContext("2d");
+
+      ctx.drawImage(video, 0, 0, canvasRef.current.width, canvasRef.current.height);
+      
+      canvasRef.current.toBlob(async (blob) => {
+
+        const formData = new FormData();
+        formData.append("username", 'valmarath');
+        formData.append("data", blob);
+
+        // Send buffer to API
+        const response = await fetch('http://localhost:5001/face_login', {
+          method: "POST",
+          mode: "cors", 
+          body: formData
+        }).then((res) => {
+          return res.json();
+        });;
+
+        console.log(response)
+
+      }, 'image/jpeg');
+
+    }
+  };
 
   const handleLogin = async(e) => {
     e.preventDefault();
@@ -22,7 +76,7 @@ export default function signin() {
     let resultLogin;
 
     if(loginType == 'face') {
-      console.log('face')
+      runFaceMesh()
     } else if (loginType === 'password') {
       if(!e.target.elements.password.value) {
         alert('Password is required!')
@@ -64,6 +118,39 @@ export default function signin() {
 
   return (
     <main className={styles.main}>
+      <div className="canvas-container">
+        <Webcam
+          ref={webcamRef}
+          style={{
+            //display: 'none',
+            position: "absolute",
+            marginLeft: "auto",
+            marginRight: "auto",
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            zIndex: 9,
+            width: 640,
+            height: 480,
+          }}
+        />
+
+        <canvas
+          ref={canvasRef}
+          style={{
+            //display: 'none',
+            position: "absolute",
+            marginLeft: "auto",
+            marginRight: "auto",
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            zIndex: 9,
+            width: 640,
+            height: 480,
+          }}
+        />
+      </div>
 {/* <Image
             className={styles.logo}
             src="./face.svg"

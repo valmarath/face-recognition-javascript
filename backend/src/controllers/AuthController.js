@@ -39,9 +39,7 @@ const login = async (req, res) => {
         }
     
         const passwordMatch = await bcrypt.compare(req.body.password, user.rows[0].password);
-    
-        console.log(passwordMatch)
-    
+        
         if(!passwordMatch) {
             res.status(401);
             res.json({ error: 'Incorrect e-mail or password!' });
@@ -65,13 +63,7 @@ const faceLogin = async (req, res) => {
         const user = await pool.query('SELECT * FROM "USERS" WHERE username = $1', [req.body.username]);
 
         if(!user) {
-            res.status(401).json({ error: 'Incorrect e-mail or password!' });
-            return;
-        }
-
-        if(!passwordMatch) {
-            res.status(401).json({ error: 'Incorrect e-mail or password!' });
-            return;
+            return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" });
         }
         
         const detectQuery1 = human.detect(readImage(QUERY_IMAGE));
@@ -80,11 +72,17 @@ const faceLogin = async (req, res) => {
         const detectRef1 = human.detect(readImage(REFERENCE_IMAGE));
         const detectRef2 = human.detect(readImage(REFERENCE_IMAGE2));
     
-        const [query1, query2, ref1, ref2] = await Promise.all([detectQuery1, detectQuery2, detectRef1, detectRef2]);
-    
-        //const reqImage = await human.detect(readImage(req.file.buffer))
+        const detectReqImage = human.detect(readImage(req.file.buffer))
+
+        //const [query1, query2, ref1, ref2] = await Promise.all([detectQuery1, detectQuery2, detectRef1, detectRef2]);
+        const [reqImage, ref1, ref2] = await Promise.all([detectReqImage, detectRef1, detectRef2]);
     
         const find1Promise = new Promise((resolve, reject) => {
+            const find1 = human.match.find(reqImage.face[0] ? reqImage.face[0].embedding : [], [ref1.face[0].embedding, ref2.face[0].embedding]);
+            resolve(find1);
+        });
+
+/*         const find1Promise = new Promise((resolve, reject) => {
             const find1 = human.match.find(query1.face[0] ? query1.face[0].embedding : [], [ref1.face[0].embedding, ref2.face[0].embedding]);
             resolve(find1);
         });
@@ -92,9 +90,10 @@ const faceLogin = async (req, res) => {
         const find2Promise = new Promise((resolve, reject) => {
             const find2 = human.match.find(query2.face[0] ? query2.face[0].embedding : [], [ref1.face[0].embedding, ref2.face[0].embedding]);
             resolve(find2);
-        });
+        }); */
     
-        Promise.all([find1Promise, find2Promise])
+        //Promise.all([find1Promise, find2Promise])
+        Promise.all([find1Promise])
             .then(results => {
                 // Handle results
                 if(results.length > 0) {
@@ -109,9 +108,12 @@ const faceLogin = async (req, res) => {
 
                     console.log('result', biggestMatch.similarity*100)
 
-                    const token = generateToken({id: user.rows[0].id});
-
-                    return res.status(200).json({ token: token });
+                    if(biggestMatch.similarity > 0.6) {
+                        const token = generateToken({id: user.rows[0].id});
+                        return res.status(200).json({ token: token });
+                    } else {
+                        return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" });
+                    }
 
                 } else {
                     res.status(401).json({ error: 'Incorrect face authentication!' });
