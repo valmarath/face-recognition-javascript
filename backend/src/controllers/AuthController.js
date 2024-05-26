@@ -73,41 +73,30 @@ const faceLogin = async (req, res) => {
             return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" });
         }
     
-        const detectRef1 = await human.detect(readImage(REFERENCE_IMAGE));
-        const detectRef2 = await human.detect(readImage(REFERENCE_IMAGE2));
+        // Próxima etapa seria remover promises desnecessárias (caso sejam)
+        // Depois, tentar passar array de arquivos na api (avaliar performance do front e enfim)
+        let user_refs;
+
+        if (userView.rows[0].images_embedding.length > 0) {
+            user_refs = userView.rows[0].images_embedding;
+        }
+
+        //const detectRef1 = await human.detect(readImage(REFERENCE_IMAGE));
+        //const detectRef2 = await human.detect(readImage(REFERENCE_IMAGE2));
 
         const detectReqImage = await human.detect(readImage(fs.readFileSync(req.file.path)));
-        
-        //const [query1, query2, ref1, ref2] = await Promise.all([detectQuery1, detectQuery2, detectRef1, detectRef2]);
-        //const [reqImage, ref1, ref2] = await Promise.all([detectReqImage, detectRef1, detectRef2]);
         
         if(detectReqImage.face.length <= 0) {
             cleanTmp(req.file.path)
             return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" }); 
         }
 
-        //console.log(detectReqImage.face)
-        //console.log(detectRef1.face[0].embedding[0])
-        //console.log(detectRef2.face[0].embedding[0])
-
-
         cleanTmp(req.file.path);
 
         const find1Promise = await new Promise(async (resolve, reject) => {
-            const find1 = await human.match.find(detectReqImage.face[0] ? detectReqImage.face[0].embedding : [], [detectRef1.face[0].embedding, detectRef2.face[0].embedding]);
+            const find1 = await human.match.find(detectReqImage.face[0] ? detectReqImage.face[0].embedding : [], user_refs);
             resolve(find1);
         });
-
-        //console.log(find1Promise)
-        /*         const find1Promise = new Promise((resolve, reject) => {
-            const find1 = human.match.find(query1.face[0] ? query1.face[0].embedding : [], [ref1.face[0].embedding, ref2.face[0].embedding]);
-            resolve(find1);
-        });
-        
-        const find2Promise = new Promise((resolve, reject) => {
-            const find2 = human.match.find(query2.face[0] ? query2.face[0].embedding : [], [ref1.face[0].embedding, ref2.face[0].embedding]);
-            resolve(find2);
-        }); */
     
         //Promise.all([find1Promise, find2Promise])
         await Promise.all([find1Promise])
