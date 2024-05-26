@@ -24,7 +24,7 @@ export default function signin() {
   const runFaceMesh = async () => {
     setInterval(() => {
       detect();
-    }, 10000);
+    }, 5000);
   };
 
   const detect = async () => {

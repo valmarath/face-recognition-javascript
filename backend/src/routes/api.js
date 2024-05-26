@@ -9,7 +9,7 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         let randomName = Math.floor(Math.random() * 99999999999);
-        cb(null, `${randomName}.jpg`)
+        cb(null, `${randomName}.${file.mimetype.split('/')[1].toLowerCase()}`)
     }
 });
 
