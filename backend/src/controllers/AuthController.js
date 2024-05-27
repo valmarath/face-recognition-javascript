@@ -27,12 +27,14 @@ const readImage = (buffer) => {
   return tfimage;
 }
 
-const cleanTmp = (filePath) => {
-    fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error('Error deleting file:', err);
-        }
-    });
+const cleanTmp = (reqFiles) => {
+    reqFiles.forEach((elem) => {
+        fs.unlink(elem.path, (err) => {
+            if (err) {
+              console.error('Error deleting file:', err);
+            }
+        });
+    })
 }
 
 const login = async (req, res) => {
@@ -73,8 +75,6 @@ const faceLogin = async (req, res) => {
             return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" });
         }
     
-        // Próxima etapa seria remover promises desnecessárias (caso sejam)
-        // Depois, tentar passar array de arquivos na api (avaliar performance do front e enfim)
         let user_refs;
 
         if (userView.rows[0].images_embedding.length > 0) {
@@ -84,22 +84,35 @@ const faceLogin = async (req, res) => {
         //const detectRef1 = await human.detect(readImage(REFERENCE_IMAGE));
         //const detectRef2 = await human.detect(readImage(REFERENCE_IMAGE2));
 
-        const detectReqImage = await human.detect(readImage(fs.readFileSync(req.file.path)));
+        let detectReqFaces = [];
+
+        const files = req.files.data;
         
-        if(detectReqImage.face.length <= 0) {
-            cleanTmp(req.file.path)
+        for(let i = 0; i < files.length; i++) {
+            let image = await human.detect(readImage(fs.readFileSync(files[i].path)));
+            console.log(image)
+            if(image.face.length > 0) {
+                detectReqFaces.push(image.face[0].embedding);
+            } 
+        };
+
+        console.log(detectReqFaces[0][0])
+        console.log(detectReqFaces[1][0])
+        console.log(detectReqFaces[2][0])
+        console.log(detectReqFaces[3][0])
+        //const detectReqImage = await human.detect(readImage(fs.readFileSync(req.file.path)));
+        
+        if(detectReqFaces.length <= 0) {
+            cleanTmp(req.files.data);
             return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" }); 
         }
 
-        cleanTmp(req.file.path);
+        cleanTmp(req.files.data);
 
-        const find1Promise = await new Promise(async (resolve, reject) => {
-            const find1 = await human.match.find(detectReqImage.face[0] ? detectReqImage.face[0].embedding : [], user_refs);
-            resolve(find1);
-        });
+        const find1 = await human.match.find(detectReqFaces[0], user_refs);
     
         //Promise.all([find1Promise, find2Promise])
-        await Promise.all([find1Promise])
+        await Promise.all([find1])
             .then(results => {
                 // Handle results
                 if(results.length > 0) {
@@ -113,7 +126,6 @@ const faceLogin = async (req, res) => {
                     }
 
                     console.log('result', biggestMatch.similarity*100)
-                    console.log('result', biggestMatch.similarity)
 
                     if(biggestMatch.similarity > 0.5) {
                         const token = generateToken({ id: userView.rows[0].user_username});
@@ -130,8 +142,8 @@ const faceLogin = async (req, res) => {
                 return res.status(500).json({ Error: err });
         });
     } catch (err) {
-        cleanTmp(req.file.path);
-        return res.status(500).json({ Error: err });
+        cleanTmp(req.files.data);
+        return res.status(500).json({ error: err });
     }
 
 }

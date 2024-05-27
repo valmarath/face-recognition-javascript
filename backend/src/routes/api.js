@@ -31,7 +31,7 @@ const router = Router();
 router.get('/ping', (req, res) => res.json({ pong: true }));
 
 router.post('/login', AuthController.login);
-router.post('/face_login', upload.single('data'), AuthController.faceLogin);
+router.post('/face_login', upload.fields([{name: 'data', maxCount: 5}]), AuthController.faceLogin);
 
 // Login and Register
 //router.post('/register', AuthValidator.register, AuthController.register)
