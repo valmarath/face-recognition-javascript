@@ -20,11 +20,14 @@ export default function signin() {
   const { settings, saveSettings } = useSettings();
   const [isLoading, setIsLoading] = useState(false);
   const [loginType, setLoginType] = useState('');
+  const [blobArray, setBlobArray] = useState([])
 
   const runFaceMesh = async () => {
-    setInterval(() => {
+    const interval = setInterval(() => {
       detect();
-    }, 5000);
+    }, 2500); 
+
+    return () => clearInterval(interval);
   };
 
   const detect = async () => {
@@ -46,14 +49,15 @@ export default function signin() {
       const ctx = canvasRef.current.getContext("2d");
 
       ctx.drawImage(video, 0, 0, canvasRef.current.width, canvasRef.current.height);
-      
-      canvasRef.current.toBlob(async (blob) => {
 
+      canvasRef.current.toBlob(async (blob) => {
+        console.log(blob)
+        setBlobArray(prevBlobArray => [...prevBlobArray, { blob }]);
         const formData = new FormData();
         formData.append("username", 'valmarath');
         formData.append("data", blob);
 
-        // Send buffer to API
+/*         // Send buffer to API
         const response = await fetch('http://localhost:5001/face_login', {
           method: "POST",
           mode: "cors", 
@@ -62,7 +66,7 @@ export default function signin() {
           return res.json();
         });;
 
-        console.log(response)
+        console.log(response) */
 
       }, 'image/jpeg');
 
