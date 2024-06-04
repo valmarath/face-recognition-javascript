@@ -81,66 +81,44 @@ const faceLogin = async (req, res) => {
             user_refs = userView.rows[0].images_embedding;
         }
 
-        //const detectRef1 = await human.detect(readImage(REFERENCE_IMAGE));
-        //const detectRef2 = await human.detect(readImage(REFERENCE_IMAGE2));
-
         let detectReqFaces = [];
 
         const files = req.files.data;
         
         for(let i = 0; i < files.length; i++) {
             let image = await human.detect(readImage(fs.readFileSync(files[i].path)));
-            console.log(image)
             if(image.face.length > 0) {
                 detectReqFaces.push(image.face[0].embedding);
             } 
         };
 
-        console.log(detectReqFaces[0][0])
-        console.log(detectReqFaces[1][0])
-        console.log(detectReqFaces[2][0])
-        console.log(detectReqFaces[3][0])
-        //const detectReqImage = await human.detect(readImage(fs.readFileSync(req.file.path)));
-        
+        cleanTmp(req.files.data);
+
         if(detectReqFaces.length <= 0) {
-            cleanTmp(req.files.data);
             return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" }); 
         }
 
-        cleanTmp(req.files.data);
+        matchArray = detectReqFaces.map((elem) => {
+            return human.match.find(elem, user_refs);
+        })
 
-        const find1 = await human.match.find(detectReqFaces[0], user_refs);
-    
-        //Promise.all([find1Promise, find2Promise])
-        await Promise.all([find1])
-            .then(results => {
-                // Handle results
-                if(results.length > 0) {
-                    
-                    let biggestMatch = results[0];
+        let matchResultArray = await Promise.all(matchArray)
 
-                    for (let i = 0; i < results.length; i++) {
-                        if (results[i].similarity > biggestMatch.similarity) {
-                            biggestMatch = results[i]; 
-                        }
-                    }
+        for(let i = 0; i < matchResultArray.length; i++) {
 
-                    console.log('result', biggestMatch.similarity*100)
+            let currentItem = matchResultArray[i];
+            console.log(currentItem. similarity)
 
-                    if(biggestMatch.similarity > 0.5) {
-                        const token = generateToken({ id: userView.rows[0].user_username});
-                        return res.status(200).json({ token: token });
-                    } else {
-                        return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" });
-                    }
+            if(currentItem. similarity >= .5) {
+                const token = generateToken({ id: userView.rows[0].user_username});
+                return res.status(200).json({ token: token });
+            }
 
-                } else {
-                    res.status(401).json({ error: 'Incorrect face authentication!' });
-                }
-            })
-            .catch(err => {
-                return res.status(500).json({ Error: err });
-        });
+            if(i == (matchResultArray.length - 1)) {
+                return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" });
+            }
+        }
+
     } catch (err) {
         cleanTmp(req.files.data);
         return res.status(500).json({ error: err });

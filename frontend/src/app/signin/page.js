@@ -20,15 +20,67 @@ export default function signin() {
   const { settings, saveSettings } = useSettings();
   const [isLoading, setIsLoading] = useState(false);
   const [loginType, setLoginType] = useState('');
-  const [blobArray, setBlobArray] = useState([])
+  const [blobArray, setBlobArray] = useState([]);
+  const [loadingText, setLoadingText] = useState('');
+  const [username, setUsername] = useState('');
+  const [activeCamera, setActiveCamera] = useState(false);
+
+// Entender pq usando o active Camera condicionalmente, não funciona -> Talvez tenha que ter delay ou tratamento de erro em função da câmera estar online ou não
 
   const runFaceMesh = async () => {
+    let count = 0;
+    const maxRuns = 4;
+  
     const interval = setInterval(() => {
       detect();
-    }, 2500); 
-
+      count += 1;
+  
+      if (count >= maxRuns) {
+        clearInterval(interval);
+      }
+    }, 250); 
+  
     return () => clearInterval(interval);
   };
+
+  useEffect(() => {
+    if(blobArray.length >= 4) {
+      
+      async function faceLogin () {
+        setLoadingText('Verifying face...')
+
+        const formData = new FormData();
+        formData.append("username", username);
+        blobArray.forEach((image, index) => {
+          formData.append("data", image);
+        })
+
+        const resultLogin = await fetch('http://localhost:5001/face_login', {
+          method: "POST",
+          mode: "cors", 
+          body: formData
+        }).then((res) => {
+          return res.json();
+        });;
+  
+        if(!resultLogin.error) {
+          const newSettings = {authorizedUser: true}
+          saveSettings(newSettings)
+          router.push('/dashboard');
+        } else {
+          alert(resultLogin.error)
+        }
+        setBlobArray([])
+        setIsLoading(false)
+        setLoadingText('')
+        setUsername('')
+        //setActiveCamera(false)
+      }
+
+      faceLogin()
+
+    }
+  }, [blobArray])
 
   const detect = async () => {
     if (
@@ -51,23 +103,8 @@ export default function signin() {
       ctx.drawImage(video, 0, 0, canvasRef.current.width, canvasRef.current.height);
 
       canvasRef.current.toBlob(async (blob) => {
-        console.log(blob)
-        setBlobArray(prevBlobArray => [...prevBlobArray, { blob }]);
-        const formData = new FormData();
-        formData.append("username", 'valmarath');
-        formData.append("data", blob);
-
-/*         // Send buffer to API
-        const response = await fetch('http://localhost:5001/face_login', {
-          method: "POST",
-          mode: "cors", 
-          body: formData
-        }).then((res) => {
-          return res.json();
-        });;
-
-        console.log(response) */
-
+          console.log('blob', blob)
+          setBlobArray(prevBlobArray => [...prevBlobArray, blob]);
       }, 'image/jpeg');
 
     }
@@ -80,10 +117,14 @@ export default function signin() {
     let resultLogin;
 
     if(loginType == 'face') {
+      setLoadingText('Look at your camera')
+      setActiveCamera(true)
+      setUsername(e.target.elements.username.value)
       runFaceMesh()
     } else if (loginType === 'password') {
       if(!e.target.elements.password.value) {
         alert('Password is required!')
+        setIsLoading(false);
       } else {
         const reqBody = {
           username: e.target.elements.username.value,
@@ -93,68 +134,67 @@ export default function signin() {
         let basePath = process.env.NEXT_PUBLIC_API_URL;
 
         let headers = {
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Cache-Control': 'no-cache',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': '*',
           'Content-Type': 'application/json',
-          'Connection': 'keep-alive',
-          'Accept': '*/*',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36',
         };
 
         resultLogin = await fetch(`${basePath}/login`, { headers: headers, method: 'POST', body: JSON.stringify(reqBody) }).then((res) => {
           return res.json();
         });
+
+        if(!resultLogin.error) {
+          const newSettings = {authorizedUser: true}
+          saveSettings(newSettings)
+          router.push('/dashboard');
+        } else {
+          alert(resultLogin.error)
+        }
+
+        setIsLoading(false);
       }
     }
 
-    if(!resultLogin.error) {
-      const newSettings = {authorizedUser: true}
-      saveSettings(newSettings)
-      router.push('/dashboard');
-    } else {
-      alert(resultLogin.error)
-    }
-
-    setIsLoading(false);
   }
 
   return (
     <main className={styles.main}>
-      <div className="canvas-container">
-        <Webcam
-          ref={webcamRef}
-          style={{
-            //display: 'none',
-            position: "absolute",
-            marginLeft: "auto",
-            marginRight: "auto",
-            left: 0,
-            right: 0,
-            textAlign: "center",
-            zIndex: 9,
-            width: 640,
-            height: 480,
-          }}
-        />
+{/*       {activeCamera && */}
+        <div className="canvas-container">
+          <Webcam
+            ref={webcamRef}
+            style={{
+              //display: 'none',
+              position: "absolute",
+              marginLeft: "auto",
+              marginRight: "auto",
+              left: 0,
+              right: 0,
+              textAlign: "center",
+              zIndex: 9,
+              width: 640,
+              height: 480,
+              opacity: 0
+            }}
+          />
 
-        <canvas
-          ref={canvasRef}
-          style={{
-            //display: 'none',
-            position: "absolute",
-            marginLeft: "auto",
-            marginRight: "auto",
-            left: 0,
-            right: 0,
-            textAlign: "center",
-            zIndex: 9,
-            width: 640,
-            height: 480,
-          }}
-        />
-      </div>
+          <canvas
+            ref={canvasRef}
+            style={{
+              //display: 'none',
+              position: "absolute",
+              marginLeft: "auto",
+              marginRight: "auto",
+              left: 0,
+              right: 0,
+              textAlign: "center",
+              zIndex: 9,
+              width: 640,
+              height: 480,
+              opacity: 0
+            }}
+          />
+        </div>      
+{/*       }
+ */}      
 {/* <Image
             className={styles.logo}
             src="./face.svg"
@@ -165,6 +205,8 @@ export default function signin() {
           /> */}
       {isLoading &&
         <div className={styles["loader-container"]}>
+          <h4>{loadingText}</h4>
+          <br/>
           <div className={styles.loader}></div>
         </div>
       }
