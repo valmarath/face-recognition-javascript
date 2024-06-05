@@ -23,9 +23,28 @@ export default function signin() {
   const [blobArray, setBlobArray] = useState([]);
   const [loadingText, setLoadingText] = useState('');
   const [username, setUsername] = useState('');
+  const [permission, setPermission] = useState(null);
   const [activeCamera, setActiveCamera] = useState(false);
 
 // Entender pq usando o active Camera condicionalmente, não funciona -> Talvez tenha que ter delay ou tratamento de erro em função da câmera estar online ou não
+  useEffect(() => {
+    const checkCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setPermission(true);
+        stream.getTracks().forEach(track => track.stop());
+      } catch (error) {
+        setPermission(false);
+      }
+    };
+
+    checkCameraPermission();
+
+  }, [])
+
+  useEffect(() => {
+    console.log(permission)
+  }, [permission])
 
   const runFaceMesh = async () => {
     let count = 0;
@@ -64,17 +83,21 @@ export default function signin() {
         });;
   
         if(!resultLogin.error) {
+          setLoadingText('User successfully authenticated!')
           const newSettings = {authorizedUser: true}
           saveSettings(newSettings)
-          router.push('/dashboard');
+          setTimeout(() => {
+            router.push('/dashboard');
+            setIsLoading(false)
+          },2000);
         } else {
-          alert(resultLogin.error)
+          alert('Face not recognized, try again!')
+          setBlobArray([])
+          setLoadingText('')
+          setUsername('')
+          setActiveCamera(false)
+          setIsLoading(false)
         }
-        setBlobArray([])
-        setIsLoading(false)
-        setLoadingText('')
-        setUsername('')
-        //setActiveCamera(false)
       }
 
       faceLogin()
@@ -117,10 +140,19 @@ export default function signin() {
     let resultLogin;
 
     if(loginType == 'face') {
+      if(permission == false) {
+        setLoadingText('Please, enable the camera in this website to use this feature!');
+        setTimeout(() => {
+          setIsLoading(false)
+        }, 2000)
+        return
+      }
       setLoadingText('Look at your camera')
       setActiveCamera(true)
       setUsername(e.target.elements.username.value)
-      runFaceMesh()
+      setTimeout(() => {
+        runFaceMesh()
+      }, 500)
     } else if (loginType === 'password') {
       if(!e.target.elements.password.value) {
         alert('Password is required!')
@@ -142,14 +174,18 @@ export default function signin() {
         });
 
         if(!resultLogin.error) {
+          setLoadingText('User successfully authenticated!')
           const newSettings = {authorizedUser: true}
-          saveSettings(newSettings)
-          router.push('/dashboard');
+          saveSettings(newSettings);
+          setTimeout(() => {
+            router.push('/dashboard');
+            setIsLoading(false);
+          }, 2000);
         } else {
-          alert(resultLogin.error)
+          alert(resultLogin.error);
+          setIsLoading(false);
         }
 
-        setIsLoading(false);
       }
     }
 
@@ -157,7 +193,7 @@ export default function signin() {
 
   return (
     <main className={styles.main}>
-{/*       {activeCamera && */}
+      {activeCamera &&
         <div className="canvas-container">
           <Webcam
             ref={webcamRef}
@@ -193,8 +229,7 @@ export default function signin() {
             }}
           />
         </div>      
-{/*       }
- */}      
+      }     
 {/* <Image
             className={styles.logo}
             src="./face.svg"
