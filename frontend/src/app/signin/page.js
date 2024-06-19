@@ -26,7 +26,14 @@ export default function signin() {
   const [permission, setPermission] = useState(null);
   const [activeCamera, setActiveCamera] = useState(false);
 
-// Entender pq usando o active Camera condicionalmente, não funciona -> Talvez tenha que ter delay ou tratamento de erro em função da câmera estar online ou não
+  function clearStates() {
+    setBlobArray([])
+    setLoadingText('')
+    setUsername('')
+    setActiveCamera(false)
+    setIsLoading(false)
+  }
+
   useEffect(() => {
     const checkCameraPermission = async () => {
       try {
@@ -42,11 +49,7 @@ export default function signin() {
 
   }, [])
 
-  useEffect(() => {
-    console.log(permission)
-  }, [permission])
-
-  const runFaceMesh = async () => {
+  const runFace = async () => {
     let count = 0;
     const maxRuns = 4;
   
@@ -92,11 +95,7 @@ export default function signin() {
           },2000);
         } else {
           alert('Face not recognized, try again!')
-          setBlobArray([])
-          setLoadingText('')
-          setUsername('')
-          setActiveCamera(false)
-          setIsLoading(false)
+          clearStates()
         }
       }
 
@@ -151,7 +150,7 @@ export default function signin() {
       setActiveCamera(true)
       setUsername(e.target.elements.username.value)
       setTimeout(() => {
-        runFaceMesh()
+        runFace()
       }, 500)
     } else if (loginType === 'password') {
       if(!e.target.elements.password.value) {

@@ -32,6 +32,7 @@ router.get('/ping', (req, res) => res.json({ pong: true }));
 
 router.post('/login', AuthController.login);
 router.post('/face_login', upload.fields([{name: 'data', maxCount: 5}]), AuthController.faceLogin);
+router.post('/register', upload.fields([{name: 'data', maxCount: 10}]), AuthController.signUp);
 
 // Login and Register
 //router.post('/register', AuthValidator.register, AuthController.register)

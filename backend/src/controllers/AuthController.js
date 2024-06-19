@@ -40,6 +40,12 @@ const cleanTmp = (reqFiles) => {
 const login = async (req, res) => {
 
     try {
+        if(!req.body.username || !req.body.password) {
+            res.status(401);
+            res.json({ error: 'Invalid e-mail or password!' });
+            return;
+        }
+
         const user = await pool.query('SELECT user_username, user_password FROM "USERS_VIEW" WHERE user_username = $1', [req.body.username]);
 
         if(user.rowCount == 0) {
@@ -69,6 +75,12 @@ const login = async (req, res) => {
 const faceLogin = async (req, res) => {
 
     try {
+        if(!req.body.username || !(req.files.data.length > 0)) {
+            res.status(401);
+            res.json({ error: 'Invalid e-mail or face!' });
+            return;
+        }
+
         const userView = await pool.query('SELECT * FROM "USERS_VIEW" WHERE user_username = $1', [req.body.username]);
 
         if(userView.rowCount == 0) {
@@ -126,8 +138,59 @@ const faceLogin = async (req, res) => {
 
 }
 
+const signUp = async (req, res) => {
+
+    try {
+        if(!req.body.username || !req.body.password || !(req.files.data.length > 0)) {
+            cleanTmp(req.files.data);
+            res.status(401);
+            res.json({ error: 'Invalid e-mail or password!' });
+            return;
+        }
+
+        let detectReqFaces = [];
+
+        const files = req.files.data;
+        
+        for(let i = 0; i < files.length; i++) {
+            let image = await human.detect(readImage(fs.readFileSync(files[i].path)));
+            if(image.face.length > 0) {
+                detectReqFaces.push({filename: files[i].filename, embedding: image.face[0].embedding});
+            } 
+        };
+
+        if(detectReqFaces.length >= 1) {
+            const newUser = await pool.query('INSERT INTO "USERS" (username, password) VALUES ($1, $2) RETURNING id', [req.body.username, req.body.password]);
+
+            if(newUser.rowCount > 0) {
+                const user_id = newUser.rows[0].id;
+
+                for(let i=0; i < detectReqFaces.length; i++) {
+                    let filename = detectReqFaces[i].filename;
+                    let embedding = detectReqFaces[i].embedding;
+                    await pool.query('INSERT INTO "IMAGES" (path, user_id, embedding) VALUES ($1, $2, $3)', [filename, user_id, embedding]);
+                }
+            }
+
+        } else {
+            cleanTmp(req.files.data);
+            res.status(401);
+            res.json({ error: 'Face register failed, try it again!' });
+            return;
+        }
+
+
+        return res.status(200).json({ result: 'User created successfully!' });
+
+    } catch (err) {
+        cleanTmp(req.files.data);
+        return res.status(500).json({ error: err });
+    }
+
+}
 
 module.exports = { 
     login,
-    faceLogin
+    faceLogin,
+    signUp
 };
