@@ -73,7 +73,6 @@ const login = async (req, res) => {
 }
 
 const faceLogin = async (req, res) => {
-
     try {
         if(!req.body.username || !(req.files.data.length > 0)) {
             res.status(401);
@@ -103,7 +102,7 @@ const faceLogin = async (req, res) => {
                 detectReqFaces.push(image.face[0].embedding);
             } 
         };
-
+        
         cleanTmp(req.files.data);
 
         if(detectReqFaces.length <= 0) {
@@ -119,7 +118,6 @@ const faceLogin = async (req, res) => {
         for(let i = 0; i < matchResultArray.length; i++) {
 
             let currentItem = matchResultArray[i];
-            console.log(currentItem. similarity)
 
             if(currentItem. similarity >= .5) {
                 const token = generateToken({ id: userView.rows[0].user_username});
@@ -136,6 +134,71 @@ const faceLogin = async (req, res) => {
         return res.status(500).json({ error: err });
     }
 
+}
+
+const faceRecognition = async (req, res) => {
+    try {
+        if(!(req.files.data.length > 0)) {
+            res.status(401);
+            res.json({ error: 'Face not found in database!!' });
+            return;
+        }
+
+        const imagesTb = await pool.query('SELECT * FROM "IMAGES"');
+
+        if(imagesTb.rowCount == 0) {
+            return res.status(401).json({ error: "Empty Database!" });
+        }
+    
+        let embbeddingArray = [];
+        
+        for(let i=0; i < imagesTb.rows.length; i++) {
+            let currentRow = imagesTb.rows[i];
+            embbeddingArray.push(currentRow.embedding)
+        }
+        
+        let detectReqFaces = [];
+
+        const files = req.files.data;
+        
+        for(let i = 0; i < files.length; i++) {
+            let image = await human.detect(readImage(fs.readFileSync(files[i].path)));
+            if(image.face.length > 0) {
+                detectReqFaces.push(image.face[0].embedding);
+            } 
+        };
+        
+        cleanTmp(req.files.data);
+
+        if(detectReqFaces.length <= 0) {
+            return res.status(401).json({ error: "Face not found in database!!" }); 
+        }
+
+        matchArray = detectReqFaces.map((elem) => {
+            return human.match.find(elem, embbeddingArray);
+        })
+
+        let matchResultArray = await Promise.all(matchArray)
+
+        for(let i = 0; i < matchResultArray.length; i++) {
+
+            let currentItem = matchResultArray[i];
+
+            if(currentItem. similarity >= .5) {
+                const userTb = await pool.query('SELECT username FROM "USERS" WHERE id = $1', [imagesTb.rows[currentItem.index].user_id]);
+                const userResult = userTb.rows[0].username;
+                return res.status(200).json({ result: userResult });
+            }
+
+            if(i == (matchResultArray.length - 1)) {
+                return res.status(401).json({ error: "Face not found in database!" });
+            }
+        }
+
+    } catch (err) {
+        cleanTmp(req.files.data);
+        return res.status(500).json({ error: err });
+    }
 }
 
 const signUp = async (req, res) => {
@@ -192,5 +255,6 @@ const signUp = async (req, res) => {
 module.exports = { 
     login,
     faceLogin,
-    signUp
+    signUp,
+    faceRecognition
 };

@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const multer = require('multer');
+const schemaValidator = require('../middleware/schemaValidator');
 
 const AuthController = require('../controllers/AuthController.js');
 
@@ -19,20 +20,23 @@ const upload = multer({
         const allowed = ['image/jpg', 'image/jpeg', 'image/png'];
         if (allowed.includes(file.mimetype)) {
             cb(null, true);
-          } else {
+        } else {
             cb(new Error("Invalid file type."));
-          }
+        }
     },
     limits: { fieldNameSize: 200, fieldSize: 2000000},
 });
 
 const router = Router();
 
+const validator = schemaValidator;
+
 router.get('/ping', (req, res) => res.json({ pong: true }));
 
-router.post('/login', AuthController.login);
-router.post('/face_login', upload.fields([{name: 'data', maxCount: 5}]), AuthController.faceLogin);
-router.post('/register', upload.fields([{name: 'data', maxCount: 10}]), AuthController.signUp);
+router.post('/login', validator.schemaValidator("/login", true, 0), AuthController.login);
+router.post('/face_login', upload.fields([{name: 'data', maxCount: 5}]), validator.schemaValidator("/face_login", true, 5), AuthController.faceLogin);
+router.post('/face_recognition', upload.fields([{name: 'data', maxCount: 5}]), validator.schemaValidator("/face_recognition", true, 5), AuthController.faceRecognition);
+router.post('/register', upload.fields([{name: 'data', maxCount: 10}]), validator.schemaValidator("/register", true, 10), AuthController.signUp);
 
 // Login and Register
 //router.post('/register', AuthValidator.register, AuthController.register)
