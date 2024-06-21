@@ -40,11 +40,6 @@ const cleanTmp = (reqFiles) => {
 const login = async (req, res) => {
 
     try {
-        if(!req.body.username || !req.body.password) {
-            res.status(401);
-            res.json({ error: 'Invalid e-mail or password!' });
-            return;
-        }
 
         const user = await pool.query('SELECT user_username, user_password FROM "USERS_VIEW" WHERE user_username = $1', [req.body.username]);
 
@@ -74,11 +69,6 @@ const login = async (req, res) => {
 
 const faceLogin = async (req, res) => {
     try {
-        if(!req.body.username || !(req.files.data.length > 0)) {
-            res.status(401);
-            res.json({ error: 'Invalid e-mail or face!' });
-            return;
-        }
 
         const userView = await pool.query('SELECT * FROM "USERS_VIEW" WHERE user_username = $1', [req.body.username]);
 
@@ -138,11 +128,6 @@ const faceLogin = async (req, res) => {
 
 const faceRecognition = async (req, res) => {
     try {
-        if(!(req.files.data.length > 0)) {
-            res.status(401);
-            res.json({ error: 'Face not found in database!!' });
-            return;
-        }
 
         const imagesTb = await pool.query('SELECT * FROM "IMAGES"');
 
@@ -204,12 +189,6 @@ const faceRecognition = async (req, res) => {
 const signUp = async (req, res) => {
 
     try {
-        if(!req.body.username || !req.body.password || !(req.files.data.length > 0)) {
-            cleanTmp(req.files.data);
-            res.status(401);
-            res.json({ error: 'Invalid e-mail or password!' });
-            return;
-        }
 
         let detectReqFaces = [];
 
