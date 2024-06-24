@@ -51,7 +51,7 @@ export default function signin() {
 
   const runFace = async () => {
     let count = 0;
-    const maxRuns = 4;
+    const maxRuns = 5;
   
     const interval = setInterval(() => {
       detect();
@@ -66,7 +66,7 @@ export default function signin() {
   };
 
   useEffect(() => {
-    if(blobArray.length >= 4) {
+    if(blobArray.length >= 5) {
       
       async function faceLogin () {
         setLoadingText('Verifying face...')
@@ -251,7 +251,7 @@ export default function signin() {
             <label htmlFor="fusername">Username</label>
             <input type="text" id="fusername" name="username" required />
             <label htmlFor="fpassword">Password</label>
-            <input type="password" id="fpassword" name="password" />
+            <input type="password" id="fpassword" name="password" required />
             <div>
               <button type="submit" onClick={() => setLoginType('password')}>Password Sign In</button>
               <button type="submit" onClick={() => setLoginType('face')}>Face Sign In</button>
