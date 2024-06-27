@@ -1,13 +1,12 @@
 'use client'
 import { useState, useEffect, useRef } from 'react';
 
-import { useRouter } from 'next/navigation';
-
-import { useSettings } from '../config/hooks/useSettings'
-
 import styles from "../page.module.css";
 
 import Webcam from "react-webcam";
+
+import Switch from '@mui/material/Switch';
+
 
 
 export default function signin() {
@@ -15,23 +14,21 @@ export default function signin() {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
 
-  const router = useRouter();
-  const { settings, saveSettings } = useSettings();
   const [isLoading, setIsLoading] = useState(false);
-  const [loginType, setLoginType] = useState('');
   const [blobArray, setBlobArray] = useState([]);
   const [loadingText, setLoadingText] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [permission, setPermission] = useState(null);
   const [activeCamera, setActiveCamera] = useState(false);
+  const [visibleCamera, setVisibleCamera] = useState(true);
+  const [faceResult, setFaceResult] = useState('-')
 
   function clearStates() {
     setBlobArray([])
     setLoadingText('')
-    setUsername('')
     setActiveCamera(false)
     setIsLoading(false)
+    webcamRef.current = null;
+    canvasRef.current = null;
   }
 
   useEffect(() => {
@@ -51,12 +48,12 @@ export default function signin() {
 
   const runFace = async () => {
     let count = 0;
-    const maxRuns = 10;
-  
+    const maxRuns = 5;
+
     const interval = setInterval(() => {
       detect();
       count += 1;
-      console.log(count)
+  
       if (count >= maxRuns) {
         clearInterval(interval);
       }
@@ -66,39 +63,37 @@ export default function signin() {
   };
 
   useEffect(() => {
-    console.log(blobArray.length )
-    if(blobArray.length >= 10) {
+    if(blobArray.length >= 5) {
       
       async function faceLogin () {
         setLoadingText('Verifying face...')
 
         const formData = new FormData();
-        formData.append("username", username);
-        formData.append("password", password);
         blobArray.forEach((image, index) => {
           formData.append("data", image);
         })
 
-        const resultLogin = await fetch('http://localhost:5001/register', {
+        const result = await fetch('http://localhost:5001/face_recognition', {
           method: "POST",
           mode: "cors", 
           body: formData
         }).then((res) => {
           return res.json();
         });;
-        console.log(resultLogin)
-        if(!resultLogin.error) {
-          setLoadingText('User successfully registered!')
-          const newSettings = {authorizedUser: true}
-          saveSettings(newSettings)
+  
+        if(!result.error) {
+          setLoadingText('Face recognition executed successfully!')
+          const recognizedUser = result.result;
+          setFaceResult(recognizedUser)
           setTimeout(() => {
-            router.push('/signin');
             setIsLoading(false)
           },2000);
         } else {
-          alert(resultLogin.error)
-          clearStates()
+          setFaceResult('User not found!')
+          alert('Face not recognized, try again!')
         }
+        clearStates();
+
       }
 
       faceLogin()
@@ -134,19 +129,9 @@ export default function signin() {
     }
   };
 
-  const handleRegister = async(e) => {
+  const handleRecognition = async(e) => {
     e.preventDefault();
     setIsLoading(true);
-
-    let resultLogin;
-
-    if(e.target.elements.password.value !== e.target.elements.passwordConfirm.value) {
-      setLoadingText("Passwords did't match!");
-      setTimeout(() => {
-        setIsLoading(false)
-      }, 2000)
-      return
-    }
 
     if(permission == false) {
       setLoadingText('Please, enable the camera in this website to use this feature!');
@@ -157,8 +142,6 @@ export default function signin() {
     }
     setLoadingText('Look at your camera')
     setActiveCamera(true)
-    setUsername(e.target.elements.username.value)
-    setPassword(e.target.elements.password.value)
     setTimeout(() => {
       runFace()
     }, 500)
@@ -167,6 +150,30 @@ export default function signin() {
 
   return (
     <main className={styles.main}>
+      {isLoading &&
+        <div className={styles["loader-container"]}>
+          <h4>{loadingText}</h4>
+          <br/>
+          <div className={styles.loader}></div>
+        </div>
+      }
+      <div className={styles.center}>
+        {!isLoading &&
+          <form onSubmit={handleRecognition}>
+            <span>Face Recognition Demo</span>
+            <div>
+              <button type='submit'>Recognize Face</button>
+            </div>
+            <br/>
+            <span>Face result: {faceResult}</span>
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+              <Switch label="Visible Camera" color="default" checked={visibleCamera} value={visibleCamera} onChange={(e) => setVisibleCamera(e.target.checked)} />
+              <span style={{fontSize: '12px'}}>Visible Camera</span>
+            </div>
+
+          </form>
+        }
+      </div>
       {activeCamera &&
         <div className="canvas-container">
           <Webcam
@@ -176,13 +183,14 @@ export default function signin() {
               position: "absolute",
               marginLeft: "auto",
               marginRight: "auto",
+              bottom: 50,
               left: 0,
               right: 0,
               textAlign: "center",
-              zIndex: 9,
-              width: 640,
-              height: 480,
-              opacity: 0
+              zIndex: 99999,
+              width: 250,
+              height: 200,
+              opacity: visibleCamera ? 1 : 0
             }}
           />
 
@@ -193,48 +201,19 @@ export default function signin() {
               position: "absolute",
               marginLeft: "auto",
               marginRight: "auto",
+              bottom: 50,
               left: 0,
               right: 0,
               textAlign: "center",
-              zIndex: 9,
-              width: 640,
-              height: 480,
-              opacity: 0
+              zIndex: 999999,
+              width: 250,
+              height: 200,
+              opacity: visibleCamera ? 1 : 0
             }}
           />
         </div>      
       }     
-{/* <Image
-            className={styles.logo}
-            src="./face.svg"
-            alt="Next.js Logo"
-            width={100}
-            height={100}
-            priority
-          /> */}
-      {isLoading &&
-        <div className={styles["loader-container"]}>
-          <h4>{loadingText}</h4>
-          <br/>
-          <div className={styles.loader}></div>
-        </div>
-      }
-      <div className={styles.center}>
-        {!isLoading &&
-          <form onSubmit={handleRegister}>
-            <span>Sign Up</span>
-            <label htmlFor="fusername">Username</label>
-            <input type="text" id="fusername" name="username" required />
-            <label htmlFor="fpassword">Password</label>
-            <input type="password" id="fpassword" name="password" />
-            <label htmlFor="fpasswordConfirm">Password Confirmation</label>
-            <input type="password" id="fpasswordConfirm" name="passwordConfirm" />
-            <div>
-              <button type="submit" onClick={() => setLoginType('face')}>Register face and complete sign up</button>
-            </div>
-          </form>
-        }
-      </div>
+
     </main>
   );
 }

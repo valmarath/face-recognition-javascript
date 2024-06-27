@@ -60,6 +60,17 @@ export default function Home() {
           <p>Register a new user.</p>
         </a>
 
+        <a
+          href="./recognition"
+          className={styles.card}
+          rel="noopener noreferrer"
+        >
+          <h2>
+            Face Recognition<span>-&gt;</span>
+          </h2>
+          <p>Face recognition demo</p>
+        </a>
+
       </div>
     </main>
   );

@@ -190,6 +190,13 @@ const signUp = async (req, res) => {
 
     try {
 
+        const users = await pool.query('SELECT * FROM "USERS" WHERE username = $1', [req.body.username]);
+
+        if(users.rowCount != 0) {
+            cleanTmp(req.files.data);
+            return res.status(401).json({ error: "Username already registered" });
+        }
+
         let detectReqFaces = [];
 
         const files = req.files.data;
