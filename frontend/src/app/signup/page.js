@@ -8,6 +8,7 @@ import { useSettings } from '../config/hooks/useSettings'
 import styles from "../page.module.css";
 
 import Webcam from "react-webcam";
+import Switch from '@mui/material/Switch';
 
 
 export default function signin() {
@@ -25,6 +26,7 @@ export default function signin() {
   const [password, setPassword] = useState('');
   const [permission, setPermission] = useState(null);
   const [activeCamera, setActiveCamera] = useState(false);
+  const [visibleCamera, setVisibleCamera] = useState(true);
 
   function clearStates() {
     setBlobArray([])
@@ -56,7 +58,6 @@ export default function signin() {
     const interval = setInterval(() => {
       detect();
       count += 1;
-      console.log(count)
       if (count >= maxRuns) {
         clearInterval(interval);
       }
@@ -66,7 +67,6 @@ export default function signin() {
   };
 
   useEffect(() => {
-    console.log(blobArray.length )
     if(blobArray.length >= 10) {
       
       async function faceLogin () {
@@ -86,7 +86,6 @@ export default function signin() {
         }).then((res) => {
           return res.json();
         });;
-        console.log(resultLogin)
         if(!resultLogin.error) {
           setLoadingText('User successfully registered!')
           const newSettings = {authorizedUser: true}
@@ -127,7 +126,6 @@ export default function signin() {
       ctx.drawImage(video, 0, 0, canvasRef.current.width, canvasRef.current.height);
 
       canvasRef.current.toBlob(async (blob) => {
-          console.log('blob', blob)
           setBlobArray(prevBlobArray => [...prevBlobArray, blob]);
       }, 'image/jpeg');
 
@@ -176,13 +174,14 @@ export default function signin() {
               position: "absolute",
               marginLeft: "auto",
               marginRight: "auto",
+              bottom: 50,
               left: 0,
               right: 0,
               textAlign: "center",
               zIndex: 9,
-              width: 640,
-              height: 480,
-              opacity: 0
+              width: 250,
+              height: 200,
+              opacity: visibleCamera ? 1 : 0
             }}
           />
 
@@ -193,13 +192,14 @@ export default function signin() {
               position: "absolute",
               marginLeft: "auto",
               marginRight: "auto",
+              bottom: 50,
               left: 0,
               right: 0,
               textAlign: "center",
               zIndex: 9,
-              width: 640,
-              height: 480,
-              opacity: 0
+              width: 250,
+              height: 200,
+              opacity: visibleCamera ? 1 : 0
             }}
           />
         </div>      
@@ -226,11 +226,15 @@ export default function signin() {
             <label htmlFor="fusername">Username</label>
             <input type="text" id="fusername" name="username" required />
             <label htmlFor="fpassword">Password</label>
-            <input type="password" id="fpassword" name="password" />
+            <input type="password" id="fpassword" name="password" required />
             <label htmlFor="fpasswordConfirm">Password Confirmation</label>
-            <input type="password" id="fpasswordConfirm" name="passwordConfirm" />
+            <input type="password" id="fpasswordConfirm" name="passwordConfirm" required />
             <div>
               <button type="submit" onClick={() => setLoginType('face')}>Register face and complete sign up</button>
+            </div>
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+              <Switch label="Visible Camera" color="default" checked={visibleCamera} value={visibleCamera} onChange={(e) => setVisibleCamera(e.target.checked)} />
+              <span style={{fontSize: '12px'}}>Visible Camera</span>
             </div>
           </form>
         }

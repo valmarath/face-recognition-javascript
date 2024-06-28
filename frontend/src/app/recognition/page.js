@@ -122,7 +122,6 @@ export default function signin() {
       ctx.drawImage(video, 0, 0, canvasRef.current.width, canvasRef.current.height);
 
       canvasRef.current.toBlob(async (blob) => {
-          console.log('blob', blob)
           setBlobArray(prevBlobArray => [...prevBlobArray, blob]);
       }, 'image/jpeg');
 

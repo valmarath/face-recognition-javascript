@@ -8,6 +8,7 @@ import { useSettings } from '../config/hooks/useSettings'
 import styles from "../page.module.css";
 
 import Webcam from "react-webcam";
+import Switch from '@mui/material/Switch';
 
 
 export default function signin() {
@@ -24,6 +25,7 @@ export default function signin() {
   const [username, setUsername] = useState('');
   const [permission, setPermission] = useState(null);
   const [activeCamera, setActiveCamera] = useState(false);
+  const [visibleCamera, setVisibleCamera] = useState(true);
 
   function clearStates() {
     setBlobArray([])
@@ -124,7 +126,6 @@ export default function signin() {
       ctx.drawImage(video, 0, 0, canvasRef.current.width, canvasRef.current.height);
 
       canvasRef.current.toBlob(async (blob) => {
-          console.log('blob', blob)
           setBlobArray(prevBlobArray => [...prevBlobArray, blob]);
       }, 'image/jpeg');
 
@@ -200,13 +201,14 @@ export default function signin() {
               position: "absolute",
               marginLeft: "auto",
               marginRight: "auto",
+              bottom: 50,
               left: 0,
               right: 0,
               textAlign: "center",
               zIndex: 9,
-              width: 640,
-              height: 480,
-              opacity: 0
+              width: 250,
+              height: 200,
+              opacity: visibleCamera ? 1 : 0
             }}
           />
 
@@ -217,13 +219,14 @@ export default function signin() {
               position: "absolute",
               marginLeft: "auto",
               marginRight: "auto",
+              bottom: 50,
               left: 0,
               right: 0,
               textAlign: "center",
               zIndex: 9,
-              width: 640,
-              height: 480,
-              opacity: 0
+              width: 250,
+              height: 200,
+              opacity: visibleCamera ? 1 : 0
             }}
           />
         </div>      
@@ -250,10 +253,14 @@ export default function signin() {
             <label htmlFor="fusername">Username</label>
             <input type="text" id="fusername" name="username" required />
             <label htmlFor="fpassword">Password</label>
-            <input type="password" id="fpassword" name="password" required />
+            <input type="password" id="fpassword" name="password" />
             <div>
               <button type="submit" onClick={() => setLoginType('password')}>Password Sign In</button>
               <button type="submit" onClick={() => setLoginType('face')}>Face Sign In</button>
+            </div>
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+              <Switch label="Visible Camera" color="default" checked={visibleCamera} value={visibleCamera} onChange={(e) => setVisibleCamera(e.target.checked)} />
+              <span style={{fontSize: '12px'}}>Visible Camera</span>
             </div>
           </form>
         }
