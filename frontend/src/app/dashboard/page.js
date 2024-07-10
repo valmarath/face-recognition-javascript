@@ -20,24 +20,7 @@ export default function dashboard() {
   return (
     <main className={styles.main}>
       <div className={styles.description}>
-        <a
-          href="https://github.com/valmarath/face-recognition-login"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <p>
-            Click here to see the project docs
-          </p>
-        </a>
-        <div>
-          <a
-            href="https://github.com/valmarath"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By Valmarath
-          </a>
-        </div>
+
       </div>
 
       <div className={styles.center}>
@@ -49,31 +32,11 @@ export default function dashboard() {
           height={100}
           priority
         />
-        <h1>Face Recognition Login</h1>
+        <h1>You are logged in!</h1>
       </div>
 
       <div className={styles.grid}>
-        <a
-          href="./signin"
-          className={styles.card}
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Sign in <span>-&gt;</span>
-          </h2>
-          <p>Login with an existent user.</p>
-        </a>
 
-        <a
-          href="./signup"
-          className={styles.card}
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Sign up <span>-&gt;</span>
-          </h2>
-          <p>Register a new user.</p>
-        </a>
 
       </div>
     </main>

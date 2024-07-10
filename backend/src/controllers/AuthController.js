@@ -17,15 +17,19 @@ const myConfig = {
 
 const human = new Human(myConfig);
 
-const QUERY_IMAGE = fs.readFileSync('./src/images/perfil.jpg')
-const QUERY_IMAGE2 = fs.readFileSync('./src/images/profile.jpg')
-const REFERENCE_IMAGE = fs.readFileSync('./src/images/vic1.JPG')
-const REFERENCE_IMAGE2 = fs.readFileSync('./src/images/vic2.JPG')
-
 const readImage = (buffer) => {     
   const tfimage = tf.node.decodeImage(buffer);
   return tfimage;
 }
+
+function normalizeDistance (dist, order=2, min=0.2, max=0.8, multiplier=25) {
+    dist = (dist**order) * multiplier 
+    if (dist === 0) return 1; // short circuit for identical inputs
+    const root = order === 2 ? Math.sqrt(dist) : dist ** (1 / order); // take root of distance
+    const norm = (1 - (root / 100) - min) / (max - min); // normalize to range
+    const clamp = Math.max(Math.min(norm, 1), 0); // clamp to 0..1
+    return clamp;
+};
 
 const cleanTmp = (reqFiles) => {
     reqFiles.forEach((elem) => {
@@ -67,9 +71,8 @@ const login = async (req, res) => {
     
 }
 
-const faceLogin = async (req, res) => {
+const faceLogin2 = async (req, res) => {
     try {
-
         const userView = await pool.query('SELECT * FROM "USERS_VIEW" WHERE user_username = $1', [req.body.username]);
 
         if(userView.rowCount == 0) {
@@ -81,6 +84,8 @@ const faceLogin = async (req, res) => {
         if (userView.rows[0].images_embedding.length > 0) {
             user_refs = userView.rows[0].images_embedding;
         }
+
+        console.log(typeof user_refs)
 
         let detectReqFaces = [];
 
@@ -104,7 +109,7 @@ const faceLogin = async (req, res) => {
         })
 
         let matchResultArray = await Promise.all(matchArray)
-
+        console.log(matchResultArray)
         for(let i = 0; i < matchResultArray.length; i++) {
 
             let currentItem = matchResultArray[i];
@@ -123,6 +128,55 @@ const faceLogin = async (req, res) => {
         cleanTmp(req.files.data);
         return res.status(500).json({ error: err });
     }
+}
+
+const faceLogin = async (req, res) => {
+        const user = await pool.query('SELECT * FROM "USERS" WHERE username = $1', [req.body.username]);
+
+        if(user.rowCount == 0) {
+            return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" });
+        }
+
+        let detectReqFaces = [];
+
+        const files = req.files.data;
+        
+        for(let i = 0; i < files.length; i++) {
+            let image = await human.detect(readImage(fs.readFileSync(files[i].path)));
+            if(image.face.length > 0) {
+                detectReqFaces.push(image.face[0].embedding);
+            } 
+        };
+        
+        cleanTmp(req.files.data);
+
+        if(detectReqFaces.length <= 0) {
+            return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" }); 
+        }
+
+        matchArray = detectReqFaces.map((elem) => {
+            const vectorString = JSON.stringify(elem);
+            return pool.query('SELECT embedding <-> $1 AS distance FROM "IMAGES" WHERE user_id = $2 ORDER BY distance ASC', [vectorString, user.rows[0].id]);
+        })
+
+        let matchResultArray = await Promise.all(matchArray)
+
+        for(let i = 0; i < matchResultArray.length; i++) {
+            let currentItem = matchResultArray[i];
+
+            for(let j = 0; j < currentItem.rows.length; j++) {
+                const distance = normalizeDistance(currentItem.rows[j].distance);
+
+                if(distance >= 0.5) {
+                    const token = generateToken({ id: user.rows[0].username});
+                    return res.status(200).json({ token: token });
+                }
+            }
+
+            if(i == (matchResultArray.length - 1)) {
+                return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" });
+            }
+        }
 
 }
 
@@ -217,7 +271,7 @@ const signUp = async (req, res) => {
                 for(let i=0; i < detectReqFaces.length; i++) {
                     let filename = detectReqFaces[i].filename;
                     let embedding = detectReqFaces[i].embedding;
-                    await pool.query('INSERT INTO "IMAGES" (path, user_id, embedding) VALUES ($1, $2, $3)', [filename, user_id, embedding]);
+                    await pool.query('INSERT INTO "IMAGES" (path, user_id, embedding) VALUES ($1, $2, $3)', [filename, user_id, JSON.stringify(embedding)]);
                 }
             }
 

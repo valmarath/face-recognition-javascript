@@ -151,7 +151,7 @@ export default function signin() {
       setUsername(e.target.elements.username.value)
       setTimeout(() => {
         runFace()
-      }, 500)
+      }, 1000)
     } else if (loginType === 'password') {
       if(!e.target.elements.password.value) {
         alert('Password is required!')

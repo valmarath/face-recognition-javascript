@@ -159,7 +159,7 @@ export default function signin() {
     setPassword(e.target.elements.password.value)
     setTimeout(() => {
       runFace()
-    }, 500)
+    }, 1000)
 
   }
 
