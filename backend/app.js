@@ -1,36 +1,34 @@
 const express = require('express');
-const { fileURLToPath } = require('url');
+const swaggerUI = require('swagger-ui-express');
+const swaggerSpec = require('./swagger');
 const path = require('path');
 const cors = require('cors');
-//const passport = require('passport');
 const apiRoutes = require('./src/routes/api.js');
 const bodyParser = require('body-parser');
 
 const server = express();
 
+// Serve Swagger documentation
+server.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
+
 const corsOptions = {
     origin: "*",
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true, // Habilita o compartilhamento de cookies ou autenticação
-    optionsSuccessStatus: 204, // Responder com um código de status 204 para opções pré-voo
-  };
+    credentials: true, // Enables cookie sharing or authentication
+    optionsSuccessStatus: 204, // Respond with a 204 status code for preflight options
+};
 
 server.use(cors(corsOptions));
-
-//const __filename = fileURLToPath(import.meta.url);
-//const __dirname = path.dirname(__filename);
 
 server.use(express.static(path.join(__dirname, '/public')));
 server.use(bodyParser.json())
 server.use(express.urlencoded({ extended: true }));
 
-//server.use(passport.initialize());
-
 server.use('', apiRoutes);
 
 server.use((req, res) => {
     res.status(404);
-    res.json({ error: 'Endpoint não encontrado.' });
+    res.json({ error: 'Endpoint not found.' });
 });
 
 const errorHandler = (err, req, res, next) => {
@@ -42,7 +40,7 @@ const errorHandler = (err, req, res, next) => {
     if(err.message) {
         res.json({ error: err.message });
     } else {
-        res.json({ error: 'Ocorreu algum erro.'})
+        res.json({ error: 'An error occurred.'})
     }
 }
 server.use(errorHandler);

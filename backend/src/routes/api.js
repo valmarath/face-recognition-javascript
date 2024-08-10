@@ -36,10 +36,6 @@ router.get('/ping', (req, res) => res.json({ pong: true }));
 router.post('/login', validator.schemaValidator("/login", true, 0), AuthController.login);
 router.post('/face_login', upload.fields([{name: 'data', maxCount: 5}]), validator.schemaValidator("/face_login", true, 5), AuthController.faceLogin);
 router.post('/face_recognition', upload.fields([{name: 'data', maxCount: 5}]), validator.schemaValidator("/face_recognition", true, 5), AuthController.faceRecognition);
-router.post('/register', upload.fields([{name: 'data', maxCount: 10}]), validator.schemaValidator("/register", true, 4), AuthController.signUp);
-
-// Login and Register
-//router.post('/register', AuthValidator.register, AuthController.register)
-//router.post('/login', AuthValidator.login, AuthController.login);
+router.post('/register', upload.fields([{name: 'data', maxCount: 10}]), validator.schemaValidator("/register", true, 10), AuthController.signUp);
 
 module.exports = router;

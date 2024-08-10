@@ -71,66 +71,9 @@ const login = async (req, res) => {
     
 }
 
-const faceLogin2 = async (req, res) => {
-    try {
-        const userView = await pool.query('SELECT * FROM "USERS_VIEW" WHERE user_username = $1', [req.body.username]);
-
-        if(userView.rowCount == 0) {
-            return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" });
-        }
-    
-        let user_refs;
-
-        if (userView.rows[0].images_embedding.length > 0) {
-            user_refs = userView.rows[0].images_embedding;
-        }
-
-        console.log(typeof user_refs)
-
-        let detectReqFaces = [];
-
-        const files = req.files.data;
-        
-        for(let i = 0; i < files.length; i++) {
-            let image = await human.detect(readImage(fs.readFileSync(files[i].path)));
-            if(image.face.length > 0) {
-                detectReqFaces.push(image.face[0].embedding);
-            } 
-        };
-        
-        cleanTmp(req.files.data);
-
-        if(detectReqFaces.length <= 0) {
-            return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" }); 
-        }
-
-        matchArray = detectReqFaces.map((elem) => {
-            return human.match.find(elem, user_refs);
-        })
-
-        let matchResultArray = await Promise.all(matchArray)
-        console.log(matchResultArray)
-        for(let i = 0; i < matchResultArray.length; i++) {
-
-            let currentItem = matchResultArray[i];
-
-            if(currentItem. similarity >= .5) {
-                const token = generateToken({ id: userView.rows[0].user_username});
-                return res.status(200).json({ token: token });
-            }
-
-            if(i == (matchResultArray.length - 1)) {
-                return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" });
-            }
-        }
-
-    } catch (err) {
-        cleanTmp(req.files.data);
-        return res.status(500).json({ error: err });
-    }
-}
-
 const faceLogin = async (req, res) => {
+    try {
+
         const user = await pool.query('SELECT * FROM "USERS" WHERE username = $1', [req.body.username]);
 
         if(user.rowCount == 0) {
@@ -156,21 +99,19 @@ const faceLogin = async (req, res) => {
 
         matchArray = detectReqFaces.map((elem) => {
             const vectorString = JSON.stringify(elem);
-            return pool.query('SELECT embedding <-> $1 AS distance FROM "IMAGES" WHERE user_id = $2 ORDER BY distance ASC', [vectorString, user.rows[0].id]);
+            return pool.query('SELECT embedding <-> $1 AS distance FROM "IMAGES" WHERE user_id = $2 ORDER BY distance ASC LIMIT 1', [vectorString, user.rows[0].id]);
         })
 
         let matchResultArray = await Promise.all(matchArray)
-
+        
         for(let i = 0; i < matchResultArray.length; i++) {
-            let currentItem = matchResultArray[i];
+            const currentItem = matchResultArray[i].rows[0].distance;
+            
+            const distance = normalizeDistance(currentItem);
 
-            for(let j = 0; j < currentItem.rows.length; j++) {
-                const distance = normalizeDistance(currentItem.rows[j].distance);
-
-                if(distance >= 0.5) {
-                    const token = generateToken({ id: user.rows[0].username});
-                    return res.status(200).json({ token: token });
-                }
+            if(distance >= 0.5) {
+                const token = generateToken({ id: user.rows[0].username});
+                return res.status(200).json({ token: token });
             }
 
             if(i == (matchResultArray.length - 1)) {
@@ -178,22 +119,19 @@ const faceLogin = async (req, res) => {
             }
         }
 
+    } catch (err) {
+        cleanTmp(req.files.data);
+        return res.status(500).json({ error: err });
+    }
 }
 
 const faceRecognition = async (req, res) => {
     try {
 
-        const imagesTb = await pool.query('SELECT * FROM "IMAGES"');
-
-        if(imagesTb.rowCount == 0) {
-            return res.status(401).json({ error: "Empty Database!" });
-        }
-    
-        let embbeddingArray = [];
+        const imagesCount = await pool.query('SELECT count(*) FROM "IMAGES"');
         
-        for(let i=0; i < imagesTb.rows.length; i++) {
-            let currentRow = imagesTb.rows[i];
-            embbeddingArray.push(currentRow.embedding)
+        if(imagesCount.rowCount == 0) {
+            return res.status(401).json({ error: "Empty Database!" });
         }
         
         let detectReqFaces = [];
@@ -214,17 +152,20 @@ const faceRecognition = async (req, res) => {
         }
 
         matchArray = detectReqFaces.map((elem) => {
-            return human.match.find(elem, embbeddingArray);
+            const vectorString = JSON.stringify(elem);
+            return pool.query('SELECT user_id, embedding <-> $1 AS distance FROM "IMAGES" ORDER BY distance ASC LIMIT 1', [vectorString]);
         })
 
         let matchResultArray = await Promise.all(matchArray)
 
         for(let i = 0; i < matchResultArray.length; i++) {
 
-            let currentItem = matchResultArray[i];
+            const currentItem = matchResultArray[i].rows[0];
+            
+            const distance = normalizeDistance(currentItem.distance);
 
-            if(currentItem. similarity >= .5) {
-                const userTb = await pool.query('SELECT username FROM "USERS" WHERE id = $1', [imagesTb.rows[currentItem.index].user_id]);
+            if(distance >= .5) {
+                const userTb = await pool.query('SELECT username FROM "USERS" WHERE id = $1', [currentItem.user_id]);
                 const userResult = userTb.rows[0].username;
                 return res.status(200).json({ result: userResult });
             }
