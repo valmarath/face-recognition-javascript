@@ -45,7 +45,7 @@ const login = async (req, res) => {
 
     try {
 
-        const user = await pool.query('SELECT user_username, user_password FROM "USERS_VIEW" WHERE user_username = $1', [req.body.username]);
+        const user = await pool.query('SELECT username, password FROM "USERS" WHERE username = $1', [req.body.username]);
 
         if(user.rowCount == 0) {
             res.status(401);
