@@ -53,7 +53,7 @@ const login = async (req, res) => {
             return;
         }
     
-        const passwordMatch = await bcrypt.compare(req.body.password, user.rows[0].user_password);
+        const passwordMatch = await bcrypt.compare(req.body.password, user.rows[0].password);
         
         if(!passwordMatch) {
             res.status(401);
@@ -65,7 +65,7 @@ const login = async (req, res) => {
     
         return res.status(200).json({ token: token});
     } catch (err) {
-        return res.status(500).json({ error: err });
+        return res.status(500).json({ error: 'Server error, please try again later!' });
     }
 
     

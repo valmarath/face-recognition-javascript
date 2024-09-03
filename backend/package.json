@@ -6,9 +6,9 @@
   "scripts": {
     "start": "node --env-file=.env app.js",
     "startdev": "nodemon --env-file=.env app.js",
-    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules npx jest --runInBand --injectGlobals false test/",
-    "test:dev": "cross-env NODE_OPTIONS=--experimental-vm-modules npx jest --runInBand --injectGlobals false --watchAll test/",
-    "test:debug": "node --experimental-vm-modules --inspect-brk ./node_modules/jest/bin/jest.js --runInBand --injectGlobals false --watchAll test/"
+    "test": "cross-env NODE_OPTIONS='--experimental-vm-modules' node --env-file=.env ./node_modules/jest/bin/jest.js --runInBand --injectGlobals false test/",
+    "test:dev": "cross-env NODE_OPTIONS='--experimental-vm-modules' node --env-file=.env ./node_modules/jest/bin/jest.js --runInBand --injectGlobals false --watchAll test/",
+    "test:debug": "node --env-file=.env --experimental-vm-modules --inspect-brk ./node_modules/jest/bin/jest.js --runInBand --injectGlobals false --watchAll test/"
   },
   "author": "",
   "license": "ISC",
