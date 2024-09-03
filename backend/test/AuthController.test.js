@@ -93,7 +93,7 @@ describe('Auth Controller Test Suite', () => {
         expect(response.status).toStrictEqual(401)
     })
 
-    it('should return status 401 when trying to login with the wrong password', async () => {
+    it('should return status 500 when database query throws error', async () => {
         const requestBody = {
             username: 'henry_cavill',
             password: 'teste1234'
@@ -115,5 +115,15 @@ describe('Auth Controller Test Suite', () => {
 
         expect(response.status).toStrictEqual(500)
         expect(errorMessage.error).toStrictEqual('Server error, please try again later!')
+    })
+
+    it('should return status 422 when there is a missing request parameter', async () => {
+        const requestBody = {
+            username: 'henry_cavill',
+        }
+
+        const response = await makeLoginRequest(requestBody)
+
+        expect(response.status).toStrictEqual(422)
     })
 })
