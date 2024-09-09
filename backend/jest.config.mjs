@@ -7,6 +7,7 @@
 const config = {
     clearMocks: true,
     coverageProvider: "v8",
+    maxWorkers: 1,
   };
   
   export default config;

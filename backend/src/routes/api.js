@@ -23,7 +23,7 @@ const upload = multer({
             cb(new Error("Invalid file type."));
         }
     },
-    limits: { fieldNameSize: 200, fieldSize: 2000000},
+    limits: { fieldNameSize: 20000, fieldSize: 200000 * 1024 * 1024},
 });
 
 const router = Router();
@@ -38,6 +38,6 @@ router.post('/face_login', upload.fields([{name: 'data', maxCount: 5}]), validat
 
 router.post('/face_recognition', upload.fields([{name: 'data', maxCount: 5}]), validator.schemaValidator("/face_recognition", true, 5), AuthController.faceRecognition);
 
-router.post('/register', upload.fields([{name: 'data', maxCount: 10}]), validator.schemaValidator("/register", true, 10), AuthController.signUp);
+router.post('/register', upload.fields([{name: 'data', maxCount: 10}]), validator.schemaValidator("/register", true, 5), AuthController.signUp);
 
 module.exports = router;

@@ -44,8 +44,7 @@ const cleanTmp = (reqFiles) => {
 const login = async (req, res) => {
 
     try {
-
-        const user = await pool.query('SELECT username, password FROM "USERS" WHERE username = $1', [req.body.username]);
+        const user = await pool.query('SELECT * FROM "USERS" WHERE username = $1', [req.body.username]);
 
         if(user.rowCount == 0) {
             res.status(401);
@@ -54,7 +53,7 @@ const login = async (req, res) => {
         }
     
         const passwordMatch = await bcrypt.compare(req.body.password, user.rows[0].password);
-        
+
         if(!passwordMatch) {
             res.status(401);
             res.json({ error: 'Incorrect e-mail or password!' });
@@ -73,10 +72,10 @@ const login = async (req, res) => {
 
 const faceLogin = async (req, res) => {
     try {
-
+        
         const user = await pool.query('SELECT * FROM "USERS" WHERE username = $1', [req.body.username]);
-
         if(user.rowCount == 0) {
+            cleanTmp(req.files.data);
             return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" });
         }
 
@@ -96,14 +95,15 @@ const faceLogin = async (req, res) => {
         if(detectReqFaces.length <= 0) {
             return res.status(401).json({ error: "Incorrect e-mail or face didn't match!" }); 
         }
-
+        
         matchArray = detectReqFaces.map((elem) => {
             const vectorString = JSON.stringify(elem);
             return pool.query('SELECT embedding <-> $1 AS distance FROM "IMAGES" WHERE user_id = $2 ORDER BY distance ASC LIMIT 1', [vectorString, user.rows[0].id]);
+            
         })
 
         let matchResultArray = await Promise.all(matchArray)
-        
+
         for(let i = 0; i < matchResultArray.length; i++) {
             const currentItem = matchResultArray[i].rows[0].distance;
             
@@ -204,7 +204,7 @@ const signUp = async (req, res) => {
         };
 
         if(detectReqFaces.length >= 1) {
-            const newUser = await pool.query('INSERT INTO "USERS" (username, password) VALUES ($1, $2) RETURNING id', [req.body.username, req.body.password]);
+            const newUser = await pool.query('INSERT INTO "USERS" (username, password) VALUES ($1, $2) RETURNING id', [req.body.username, hashPassword(req.body.password)]);
 
             if(newUser.rowCount > 0) {
                 const user_id = newUser.rows[0].id;

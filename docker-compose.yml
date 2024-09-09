@@ -1,33 +1,33 @@
 services:
-  frontend:
-    image: node:latest
-    container_name: frontend
-    working_dir: /app
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "3000:3000"
-    command: sh -c "npm install && npm run dev"
-    depends_on:
-      - backend
-    networks:
-      - app-network
+ # frontend:
+ #   image: node:latest
+ #   container_name: frontend
+ #   working_dir: /app
+ #   volumes:
+ #     - ./frontend:/app
+ #     - /app/node_modules
+ #   ports:
+ #     - "3000:3000"
+ #   command: sh -c "npm install && npm run dev"
+ #   depends_on:
+ #     - backend
+ #   networks:
+ #     - app-network
 
-  backend:
-    image: node:latest
-    container_name: backend
-    working_dir: /app
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    ports:
-      - "5001:5001"
-    command: sh -c "npm install && npm run startdev"
-    depends_on:
-      - db
-    networks:
-      - app-network
+  #backend:
+  #  image: node:latest
+  #  container_name: backend
+  #  working_dir: /app
+  #  volumes:
+  #    - ./backend:/app
+  #    - /app/node_modules
+  #  ports:
+  #    - "5001:5001"
+  #  command: sh -c "npm install && npm run startdev"
+  #  depends_on:
+  #    - db
+  #  networks:
+  #    - app-network
 
   db:
     image: ankane/pgvector
