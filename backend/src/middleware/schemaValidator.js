@@ -26,7 +26,7 @@ const schemaValidator = (path, useJoiError = true, minFiles) => {
     if(minFiles > 0) {
       const files = JSON.parse(JSON.stringify(req.files));
       if(!files.data || files.data.length < minFiles) {
-        return res.status(400).json({ error: `At least ${minFiles} files are required.` });
+        return res.status(422).json({ error: `At least ${minFiles} files are required.` });
       }
     }
 

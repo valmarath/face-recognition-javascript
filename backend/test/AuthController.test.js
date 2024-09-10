@@ -210,6 +210,39 @@ describe('Auth Controller Test Suite', () => {
 
             spy.mockRestore();
         })
+
+        it('should return status 500 when database query throws error', async () => {
+            const username = 'henry_cavill';
+            const formData = new FormData();
+            formData.append("username", username);
+            
+            addFilesToForm(formData, 'mock_images_cavill')
+
+            const headers = formData.getHeaders();
+    
+            const spy = jest.spyOn(Pool.prototype, 'query').mockResolvedValue(new Error('Database error!'));
+    
+            const response = await makeFaceLoginRequest(formData, headers)
+    
+            expect(response.status).toStrictEqual(500)
+
+            spy.mockRestore();
+        })
+
+        it('should return status 422 when there is a missing request parameter', async () => {
+            const username = 'henry_cavill';
+            const formData = new FormData();
+            formData.append("username", username);
+            
+            const headers = formData.getHeaders();
+    
+            const response = await makeFaceLoginRequest(formData, headers)
+
+            let jsonResponse = await response.json()
+
+            expect(jsonResponse.error).toStrictEqual('At least 5 files are required.')
+            expect(response.status).toStrictEqual(422)
+        })
     })
 
 })
