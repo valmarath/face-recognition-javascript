@@ -28,8 +28,8 @@ describe('Auth Controller Test Suite', () => {
         })
     }
 
-    async function makeFaceLoginRequest(formData, headers) {
-        return await fetch(`${_testServerAddress}/face_login`, {
+    async function makeFaceLoginRequest(url, formData, headers) {
+        return await fetch(`${_testServerAddress}/${url}`, {
             method: 'POST',
             headers: headers,
             body: formData
@@ -44,6 +44,20 @@ describe('Auth Controller Test Suite', () => {
             const filePath = path.join(imagesFolderPath, file);
             const fileStream = fs.createReadStream(filePath);
             formData.append("data", fileStream, file);
+        });
+    }
+
+    function addLimitedFilesToForm(formData, folder, limit) {
+        const imagesFolderPath = path.join(__dirname, folder);
+        const files = fs.readdirSync(imagesFolderPath);
+        let count = 0
+        files.forEach((file) => {
+            if(count < limit) {
+                const filePath = path.join(imagesFolderPath, file);
+                const fileStream = fs.createReadStream(filePath);
+                formData.append("data", fileStream, file);
+                count += 1
+            }
         });
     }
 
@@ -170,7 +184,7 @@ describe('Auth Controller Test Suite', () => {
                 .mockResolvedValueOnce(resolvedValueFindUser)
                 .mockResolvedValue(resolvedValueFaceEmbedding);
     
-            const response = await makeFaceLoginRequest(formData, headers)
+            const response = await makeFaceLoginRequest('face_login', formData, headers)
     
             expect(response.status).toStrictEqual(200)
 
@@ -204,7 +218,7 @@ describe('Auth Controller Test Suite', () => {
                 .mockResolvedValueOnce(resolvedValueFindUser)
                 .mockResolvedValue(resolvedValueFaceEmbedding);
     
-            const response = await makeFaceLoginRequest(formData, headers)
+            const response = await makeFaceLoginRequest('face_login', formData, headers)
     
             expect(response.status).toStrictEqual(401);
 
@@ -222,7 +236,7 @@ describe('Auth Controller Test Suite', () => {
     
             const spy = jest.spyOn(Pool.prototype, 'query').mockResolvedValue(new Error('Database error!'));
     
-            const response = await makeFaceLoginRequest(formData, headers)
+            const response = await makeFaceLoginRequest('face_login', formData, headers)
     
             expect(response.status).toStrictEqual(500)
 
@@ -236,7 +250,102 @@ describe('Auth Controller Test Suite', () => {
             
             const headers = formData.getHeaders();
     
-            const response = await makeFaceLoginRequest(formData, headers)
+            const response = await makeFaceLoginRequest('face_login', formData, headers)
+
+            let jsonResponse = await response.json()
+
+            expect(jsonResponse.error).toStrictEqual('At least 5 files are required.')
+            expect(response.status).toStrictEqual(422)
+        })
+    })
+
+    describe('Face Recognition API Test Suite', () => {
+        it('should return status 200 when trying to recognize a give face', async () => {
+            const formData = new FormData();
+            
+            addFilesToForm(formData, 'mock_images_cavill')
+
+            const headers = formData.getHeaders();
+
+            const resolvedValueFindUser = {
+                rowCount: 1,
+                rows: [{
+                    id: 1,
+                    username: 'henry_cavill',
+                    password: '$2b$10$kuLkommM7.T83jpQC26tDu7Xb0MMsyth6RL2QuYjVihSIjihLr0KG'
+                }]
+            }
+
+            const resolvedValueFaceEmbedding = {
+                rowCount: 1,
+                rows: [ { distance: 0 } ]
+            }
+    
+            const spy = jest.spyOn(Pool.prototype, 'query')
+                .mockResolvedValueOnce(resolvedValueFindUser)
+                .mockResolvedValue(resolvedValueFaceEmbedding);
+    
+            const response = await makeFaceLoginRequest('face_recognition', formData, headers)
+    
+            expect(response.status).toStrictEqual(200)
+
+            spy.mockRestore();
+        })
+    
+        it('should return status 401 when trying to face login with wrong person', async () => {
+            const formData = new FormData();
+            
+            addFilesToForm(formData, 'mock_images_affleck')
+
+            const headers = formData.getHeaders();
+
+            const resolvedValueFindUser = {
+                rowCount: 1,
+                rows: [{
+                    id: 1,
+                    username: 'henry_cavill',
+                    password: '$2b$10$kuLkommM7.T83jpQC26tDu7Xb0MMsyth6RL2QuYjVihSIjihLr0KG'
+                }]
+            }
+
+            const resolvedValueFaceEmbedding = {
+                rowCount: 1,
+                rows: [ { distance: 12.499186985279033 } ]
+            }
+    
+            const spy = jest.spyOn(Pool.prototype, 'query')
+                .mockResolvedValueOnce(resolvedValueFindUser)
+                .mockResolvedValue(resolvedValueFaceEmbedding);
+    
+            const response = await makeFaceLoginRequest('face_recognition', formData, headers)
+    
+            expect(response.status).toStrictEqual(401);
+
+            spy.mockRestore();
+        })
+
+        it('should return status 500 when database query throws error', async () => {
+            const formData = new FormData();
+            
+            addFilesToForm(formData, 'mock_images_cavill')
+
+            const headers = formData.getHeaders();
+    
+            const spy = jest.spyOn(Pool.prototype, 'query').mockResolvedValue(new Error('Database error!'));
+    
+            const response = await makeFaceLoginRequest('face_recognition', formData, headers)
+    
+            expect(response.status).toStrictEqual(500)
+
+            spy.mockRestore();
+        })
+
+        it('should return status 422 when there is a missing request parameter', async () => {
+            const formData = new FormData();
+            addLimitedFilesToForm(formData, 'mock_images_cavill', 3)
+            const headers = formData.getHeaders();
+    
+            const response = await makeFaceLoginRequest('face_recognition', formData, headers)
 
             let jsonResponse = await response.json()
 
