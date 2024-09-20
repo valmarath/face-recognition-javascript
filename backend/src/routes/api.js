@@ -5,7 +5,8 @@ const AuthController = require('../controllers/AuthController.js');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, './src/tmp');
+        let folder_path = process.env.TMP_FOLDER ? process.env.TMP_FOLDER : './src/tmp'
+        cb(null, folder_path);
     },
     filename: (req, file, cb) => {
         let randomName = Math.floor(Math.random() * 99999999999);

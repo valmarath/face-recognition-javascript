@@ -3,7 +3,7 @@ const Human = require('@vladmandic/human').default; // points to @vladmandic/hum
 const fs = require('fs')
 const { pool } = require("../instances/pg");
 const { generateToken } = require('../config/passport');
-const { hashPassword } = require('../utils');
+const { hashPassword, cleanTmp } = require('../utils');
 const bcrypt = require('bcrypt');
 
 const myConfig = {
@@ -30,16 +30,6 @@ function normalizeDistance (dist, order=2, min=0.2, max=0.8, multiplier=25) {
     const clamp = Math.max(Math.min(norm, 1), 0); // clamp to 0..1
     return clamp;
 };
-
-const cleanTmp = (reqFiles) => {
-    reqFiles.forEach((elem) => {
-        fs.unlink(elem.path, (err) => {
-            if (err) {
-              console.error('Error deleting file:', err);
-            }
-        });
-    })
-}
 
 const login = async (req, res) => {
 
@@ -186,10 +176,10 @@ const signUp = async (req, res) => {
     try {
 
         const users = await pool.query('SELECT * FROM "USERS" WHERE username = $1', [req.body.username]);
-
+        
         if(users.rowCount != 0) {
             cleanTmp(req.files.data);
-            return res.status(401).json({ error: "Username already registered" });
+            return res.status(409).json({ error: "Username already registered" });
         }
 
         let detectReqFaces = [];
@@ -223,8 +213,7 @@ const signUp = async (req, res) => {
             return;
         }
 
-
-        return res.status(200).json({ result: 'User created successfully!' });
+        return res.status(201).json({ result: 'User created successfully!' });
 
     } catch (err) {
         cleanTmp(req.files.data);

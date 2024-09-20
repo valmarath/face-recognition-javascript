@@ -28,7 +28,7 @@ describe('Auth Controller Test Suite', () => {
         })
     }
 
-    async function makeFaceLoginRequest(url, formData, headers) {
+    async function makeRequest(url, formData, headers) {
         return await fetch(`${_testServerAddress}/${url}`, {
             method: 'POST',
             headers: headers,
@@ -73,8 +73,20 @@ describe('Auth Controller Test Suite', () => {
     })
 
     afterAll((done) => {
+        const directory = "./test/tmp";
+
+        fs.readdir(directory, (err, files) => {
+            if (err) throw err;
+          
+            for (const file of files) {
+              fs.unlink(path.join(directory, file), (err) => {
+                if (err) throw err;
+              });
+            }
+          });
+          
         jest.clearAllMocks();
-        _testServer.close(done)
+        _testServer.close(done);
     })
 
     describe('Login API Test Suite', () => {
@@ -126,15 +138,7 @@ describe('Auth Controller Test Suite', () => {
                 password: 'teste1234'
             }
     
-            const resolvedValue = {
-                rowCount: 1,
-                rows: [
-                    {id: 1,
-                    password: '$2b$10$kuLkommM7.T83jpQC26tDu7Xb0MMsyth6RL2QuYjVihSIjihLr0KG'}
-                ]
-            }
-    
-            const spy = jest.spyOn(Pool.prototype, 'query').mockResolvedValue(new Error('Database error!'));
+            const spy = jest.spyOn(Pool.prototype, 'query').mockRejectedValue(new Error('Database error'));
     
             const response = await makeLoginRequest(requestBody)
     
@@ -184,7 +188,7 @@ describe('Auth Controller Test Suite', () => {
                 .mockResolvedValueOnce(resolvedValueFindUser)
                 .mockResolvedValue(resolvedValueFaceEmbedding);
     
-            const response = await makeFaceLoginRequest('face_login', formData, headers)
+            const response = await makeRequest('face_login', formData, headers)
     
             expect(response.status).toStrictEqual(200)
 
@@ -218,7 +222,7 @@ describe('Auth Controller Test Suite', () => {
                 .mockResolvedValueOnce(resolvedValueFindUser)
                 .mockResolvedValue(resolvedValueFaceEmbedding);
     
-            const response = await makeFaceLoginRequest('face_login', formData, headers)
+            const response = await makeRequest('face_login', formData, headers)
     
             expect(response.status).toStrictEqual(401);
 
@@ -234,9 +238,9 @@ describe('Auth Controller Test Suite', () => {
 
             const headers = formData.getHeaders();
     
-            const spy = jest.spyOn(Pool.prototype, 'query').mockResolvedValue(new Error('Database error!'));
+            const spy = jest.spyOn(Pool.prototype, 'query').mockRejectedValue(new Error('Database error'));
     
-            const response = await makeFaceLoginRequest('face_login', formData, headers)
+            const response = await makeRequest('face_login', formData, headers)
     
             expect(response.status).toStrictEqual(500)
 
@@ -250,7 +254,7 @@ describe('Auth Controller Test Suite', () => {
             
             const headers = formData.getHeaders();
     
-            const response = await makeFaceLoginRequest('face_login', formData, headers)
+            const response = await makeRequest('face_login', formData, headers)
 
             let jsonResponse = await response.json()
 
@@ -285,7 +289,7 @@ describe('Auth Controller Test Suite', () => {
                 .mockResolvedValueOnce(resolvedValueFindUser)
                 .mockResolvedValue(resolvedValueFaceEmbedding);
     
-            const response = await makeFaceLoginRequest('face_recognition', formData, headers)
+            const response = await makeRequest('face_recognition', formData, headers)
     
             expect(response.status).toStrictEqual(200)
 
@@ -317,7 +321,7 @@ describe('Auth Controller Test Suite', () => {
                 .mockResolvedValueOnce(resolvedValueFindUser)
                 .mockResolvedValue(resolvedValueFaceEmbedding);
     
-            const response = await makeFaceLoginRequest('face_recognition', formData, headers)
+            const response = await makeRequest('face_recognition', formData, headers)
     
             expect(response.status).toStrictEqual(401);
 
@@ -330,10 +334,10 @@ describe('Auth Controller Test Suite', () => {
             addFilesToForm(formData, 'mock_images_cavill')
 
             const headers = formData.getHeaders();
+
+            const spy = jest.spyOn(Pool.prototype, 'query').mockRejectedValue(new Error('Database error'));
     
-            const spy = jest.spyOn(Pool.prototype, 'query').mockResolvedValue(new Error('Database error!'));
-    
-            const response = await makeFaceLoginRequest('face_recognition', formData, headers)
+            const response = await makeRequest('face_recognition', formData, headers)
     
             expect(response.status).toStrictEqual(500)
 
@@ -345,10 +349,118 @@ describe('Auth Controller Test Suite', () => {
             addLimitedFilesToForm(formData, 'mock_images_cavill', 3)
             const headers = formData.getHeaders();
     
-            const response = await makeFaceLoginRequest('face_recognition', formData, headers)
+            const response = await makeRequest('face_recognition', formData, headers)
 
             let jsonResponse = await response.json()
 
+            expect(jsonResponse.error).toStrictEqual('At least 5 files are required.')
+            expect(response.status).toStrictEqual(422)
+
+        })
+    })
+
+    describe('Register API Test Suite', () => {
+
+        it('should return status 201 when a new user is created successfully', async () => {
+            const username = 'henry_cavill';
+            const password = 'test123'
+            const formData = new FormData();
+            formData.append("username", username);
+            formData.append("password", password);
+            
+            addFilesToForm(formData, 'mock_images_cavill')
+
+            const headers = formData.getHeaders();
+
+            const resolvedValueFindUser = {
+                rowCount: 0
+            }
+    
+            const resolvedValueInsertedUser = {
+                rowCount: 1,
+                rows: [
+                    {id: 1}
+                ]
+            }
+
+            const resolvedValueInsertedImages = {
+                rowCount: 5,
+            }
+
+            const spy = jest.spyOn(Pool.prototype, 'query')
+                .mockResolvedValueOnce(resolvedValueFindUser)
+                .mockResolvedValueOnce(resolvedValueInsertedUser)
+                .mockResolvedValue(resolvedValueInsertedImages)
+    
+            const response = await makeRequest('register', formData, headers)
+    
+            expect(response.status).toStrictEqual(201)
+
+            spy.mockRestore();
+        })
+
+        it('should return status 409 when trying to register a user that already exists', async () => {
+            const username = 'henry_cavill';
+            const password = 'teste123';
+            const formData = new FormData();
+            formData.append("username", username);
+            formData.append("password", password);
+
+            addFilesToForm(formData, 'mock_images_cavill')
+
+            const headers = formData.getHeaders();
+            
+            const resolvedValue = {
+                rowCount: 1,
+                rows: [{
+                    id: 1,
+                    username: 'henry_cavill',
+                    password: '$2b$10$kuLkommM7.T83jpQC26tDu7Xb0MMsyth6RL2QuYjVihSIjihLr0KG'
+                }]
+            }
+    
+            const spy = jest.spyOn(Pool.prototype, 'query').mockResolvedValue(resolvedValue);
+    
+            const response = await makeRequest('register', formData, headers)
+    
+            expect(response.status).toStrictEqual(409)
+
+            spy.mockRestore();
+        })
+
+        it('should return status 500 when database query throws error', async () => {
+            const username = 'henry_cavill';
+            const password = 'teste123';
+            const formData = new FormData();
+            formData.append("username", username);
+            formData.append("password", password);
+
+            addFilesToForm(formData, 'mock_images_cavill')
+
+            const headers = formData.getHeaders();
+    
+            const spy = jest.spyOn(Pool.prototype, 'query').mockRejectedValue(new Error('Database error'));
+    
+            const response = await makeRequest('register', formData, headers)
+    
+            expect(response.status).toStrictEqual(500)
+
+            spy.mockRestore();
+        })
+
+        it('should return status 422 when there is a missing request parameter', async () => {
+            const username = 'henry_cavill';
+
+            const formData = new FormData();
+
+            formData.append("username", username);
+
+            addLimitedFilesToForm(formData, 'mock_images_cavill', 3)
+            const headers = formData.getHeaders();
+    
+            const response = await makeRequest('register', formData, headers)
+
+            let jsonResponse = await response.json()
             expect(jsonResponse.error).toStrictEqual('At least 5 files are required.')
             expect(response.status).toStrictEqual(422)
         })
