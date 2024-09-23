@@ -52,7 +52,17 @@
  *                 token:
  *                   type: string
  *                   example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'
- *       401:
+*       422:
+*         description: Validation error due to missing username or password
+*         content:
+*           application/json:
+*             schema:
+*               type: object
+*               properties:
+*                 error:
+*                   type: string
+*                   example: 'username is required' 
+*       401:
  *         description: Incorrect username or password
  *         content:
  *           application/json:
@@ -79,7 +89,7 @@
  * /register:
  *   post:
  *     summary: User registration
- *     description: Registers a new user with a username, password, and face data. The face data is processed and stored in the database. A minimum of 10 image files is required.
+ *     description: Registers a new user with a username, password, and face data. The face data is processed and stored in the database. A minimum of 5 image files is required.
  *     tags:
  *       - Authentication
  *     requestBody:
@@ -103,9 +113,9 @@
  *                 items:
  *                   type: string
  *                   format: binary
- *                 description: Array of image files for face recognition (minimum 10 files required)
+ *                 description: Array of image files for face recognition (minimum 5 files required)
  *     responses:
- *       200:
+ *       201:
  *         description: User created successfully
  *         content:
  *           application/json:
@@ -115,8 +125,8 @@
  *                 result:
  *                   type: string
  *                   example: 'User created successfully!'
- *       400:
- *         description: Validation error, such as missing required files or invalid file type
+ *       422:
+ *         description: Validation error due to missing username, password, or files
  *         content:
  *           application/json:
  *             schema:
@@ -124,8 +134,8 @@
  *               properties:
  *                 error:
  *                   type: string
- *                   example: 'At least 10 files are required.'
- *       401:
+ *                   example: 'At least 5 files are required.'
+ *       409:
  *         description: Registration failed due to issues like duplicate username or face detection failure
  *         content:
  *           application/json:
@@ -194,6 +204,17 @@
  *                 error:
  *                   type: string
  *                   example: "Incorrect e-mail or face didn't match!"
+ * 
+ *       422:
+ *         description: Validation error due to missing username, password, or files
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: 'At least 5 files are required.'
  *       500:
  *         description: Internal server error
  *         content:
@@ -239,6 +260,16 @@
  *                 result:
  *                   type: string
  *                   example: 'henry_cavill'
+ *       422:
+ *         description: Validation error due to missing files
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: 'At least 5 image file is required.'
  *       401:
  *         description: Identification failed due to empty database or face not found
  *         content:
