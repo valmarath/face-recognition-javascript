@@ -17,7 +17,7 @@ If you want to start understanding how facial recognition works, I recommend rea
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Limitations and Next Steps](#limitations-and-next-steps)
+- [Limitations](#limitations)
 
 ## Features
 - Registers a new user with a username, password, and face data.
@@ -55,5 +55,5 @@ docker-compose up -d
 ## Limitations
 This project was, above all, an experiment. Therefore, the implementation and architecture are not ready for real-world use. Specifically, using facial recognition for login in a web application could introduce several security vulnerabilities, so caution should be exercised before considering its implementation.
 
-However, the main goal of this project was exploratory, and it should be treated as such.
+The frontend is quite simple, given that I just wanted to have one to make it easier for people to test the functionalities (myself included). However, the main goal of this project was exploratory, and it should be treated as such.
 
